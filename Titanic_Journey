@@ -13,8 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import seaborn as sns
-sns.set_style('whitegrid')
 
+sns.set_style('whitegrid')
 # %matplotlib inline
 
 # machine learning
@@ -23,8 +23,6 @@ from sklearn.svm import SVC, LinearSVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
-
-
 
 
 def dropUnnecessary(titanic_df, test_df):
@@ -344,11 +342,44 @@ def logisticRegression_my(X_train, Y_train, X_test):
     logreg = LogisticRegression()
     # print X_train
     logreg.fit(X_train, Y_train)
-
     Y_pred = logreg.predict(X_test)
 
-    logreg.score(X_train, Y_train)
+
+    print("logreg score is "+str(logreg.score(X_train, Y_train)))
+
     return [X_train, Y_train, X_test,Y_pred, logreg]
+
+
+def vectorMachine(X_train, Y_train, X_test):
+    # Support Vector Machines
+    svc = SVC()
+    svc.fit(X_train, Y_train)
+    Y_pred = svc.predict(X_test)
+
+    print("svc score is "+str(svc.score(X_train, Y_train)))
+
+    return [X_train, Y_train, X_test, Y_pred, svc]
+
+
+def kNeighbors(X_train, Y_train, X_test):
+    knn = KNeighborsClassifier(n_neighbors = 3)
+    knn.fit(X_train, Y_train)
+    Y_pred = knn.predict(X_test)
+
+    print("knn score is "+str(knn.score(X_train, Y_train)))
+
+    return [X_train, Y_train, X_test, Y_pred, knn]
+
+
+def gaussianNaive(X_train, Y_train, X_test):
+    # Gaussian Naive Bayes
+    gaussian = GaussianNB()
+    gaussian.fit(X_train, Y_train)
+    Y_pred = gaussian.predict(X_test)
+
+    print("Gaussian score is "+str(gaussian.score(X_train, Y_train)))
+
+    return [X_train, Y_train, X_test, Y_pred, gaussian]
 
 
 def vectorSupport(X_train, Y_train, X_test):
@@ -365,14 +396,14 @@ def vectorSupport(X_train, Y_train, X_test):
     return [X_train, Y_train, X_test]
 
 
-def correlationCoefficient(titanic_df, logreg, X_train, Y_train, X_test):
+def correlationCoefficient(titanic_df, param, X_train, Y_train, X_test):
     # get Correlation Coefficient for each feature using Logistic Regression
     coeff_df = DataFrame(titanic_df.columns.delete(0))
     coeff_df.columns = ['Features']
-    coeff_df["Coefficient Estimate"] = pd.Series(logreg.coef_[0])
+    coeff_df["Coefficient Estimate"] = pd.Series(param.coef_[0])
 
     # preview
-    print(coeff_df)
+    print("Coeff_df score is "+str(coeff_df))
 
     return X_train, Y_train, X_test
 
@@ -381,20 +412,28 @@ def randomForest(X_train, Y_train, X_test):
     # Random Forests
 
     random_forest = RandomForestClassifier(n_estimators=100)
-
     random_forest.fit(X_train, Y_train)
-
     Y_pred = random_forest.predict(X_test)
 
-    random_forest.score(X_train, Y_train)
-
-    return [X_train, Y_train, X_test]
+    print("random_forest score is "+str(random_forest.score(X_train, Y_train)))
+    return [X_train, Y_train, X_test, Y_pred, random_forest]
 
 
 def trainData(titanic_df,  X_train, Y_train, X_test):
-    X_train, Y_train, X_test, Y_pred, logreg = logisticRegression_my(X_train, Y_train, X_test)
-    X_train, Y_train, X_test = randomForest(X_train, Y_train, X_test)
-    correlationCoefficient(titanic_df, logreg, X_train, Y_train, X_test)
+    """
+
+    :rtype: list
+    """
+
+    # five different methods used to predice the Survival on titanic
+   # X_train, Y_train, X_test, Y_pred, knn = kNeighbors(X_train, Y_train, X_test)
+    X_train, Y_train, X_test, Y_pred, svc = vectorMachine(X_train, Y_train, X_test)
+    # X_train, Y_train, X_test, Y_pred, gaussian = gaussianNaive(X_train, Y_train, X_test)
+   # X_train, Y_train, X_test, Y_pred, logreg = logisticRegression_my(X_train, Y_train, X_test)
+   # X_train, Y_train, X_test, Y_pred, random_forest = randomForest(X_train, Y_train, X_test)
+
+    #param = logreg
+    #correlationCoefficient(titanic_df, param, X_train, Y_train, X_test)
 
     return Y_pred
 
