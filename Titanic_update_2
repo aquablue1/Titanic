@@ -1,6 +1,25 @@
+# coding=utf-8
+# remove warnings
+from __future__ import print_function
+
+import warnings
+warnings.filterwarnings('ignore')
+# ---
+
+# %matplotlib inline
+import pandas as pd
+pd.options.display.max_columns = 100
+from matplotlib import pyplot as plt
+import matplotlib
+# matplotlib.style.use('ggplot')
+import numpy as np
+
+pd.options.display.max_rows = 100
+
 import pandas as pd
 import numpy as np
 
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectKBest
@@ -14,7 +33,7 @@ from sklearn.feature_selection import SelectFromModel
 
 def status(feature):
 
-    print 'Processing',feature,': ok'
+    print('Processing',feature,': ok')
 
 
 def get_combined_data():
@@ -125,6 +144,7 @@ def process_age():
 
     status('age')
 
+
 def process_names():
 
     global combined
@@ -146,6 +166,7 @@ def process_fares():
     combined.Fare.fillna(combined.Fare.mean(), inplace=True)
 
     status('fare')
+
 
 
 def process_embarked():
@@ -186,6 +207,37 @@ def process_sex():
     combined['Sex'] = combined['Sex'].map({'male': 1, 'female': 0})
 
     status('sex')
+
+def set_missing_age():
+    global combined
+    # 把已有的数值型特征取出来丢进Random Forest Regressor中
+    age_df = combined[['Age', 'Fare', 'Parch', 'SibSp', 'Pclass']]
+    # age_df = combined[['Age','Fare', 'Parch', 'SibSp', 'Pclass']]
+
+    # 乘客分成已知年龄和未知年龄两部分
+    known_age = age_df[age_df.Age.notnull()].as_matrix()
+    print(known_age)
+    print('--')
+    unknown_age = age_df[age_df.Age.isnull()].as_matrix()
+    print(unknown_age)
+    print('--')
+    print('--')
+    # y即目标年龄
+    y = known_age[:, 0]
+    print(y)
+    print('--')
+    # X即特征属性值
+    X = known_age[:, 1:]
+    print(X)
+    # fit到RandomForestRegressor之中
+    rfr = RandomForestRegressor(random_state=0, n_estimators=2000, n_jobs=-1)
+    rfr.fit(X, y)
+
+    # 用得到的模型进行未知年龄结果预测
+    predictedAges = rfr.predict(unknown_age[:, 1::])
+
+    # 用得到的预测结果填补原缺失数据
+    combined.loc[(combined.Age.isnull()), 'Age'] = predictedAges
 
 
 def process_pclass():
@@ -248,7 +300,7 @@ def scale_all_features():
     features.remove('PassengerId')
     combined[features] = combined[features].apply(lambda x: x / x.max(), axis=0)
 
-    print 'Features scaled successfully !'
+    print('Features scaled successfully !')
 
 # =======================================================
 # =======================================================
@@ -265,10 +317,12 @@ def recover_train_test_target():
     train0 = pd.read_csv('./input/train.csv')
 
     targets = train0.Survived
+    # print(targets)
     train = combined.ix[0:890]
     test = combined.ix[891:]
 
     return train, test, targets
+
 
 
 if __name__ == '__main__':
@@ -279,11 +333,12 @@ if __name__ == '__main__':
     # print combined.head()
     process_age()
 
+    process_fares()
+    # set_missing_age()
+
     # print combined.info()
 
     process_names()
-
-    process_fares()
 
     process_embarked()
 
@@ -299,51 +354,74 @@ if __name__ == '__main__':
 
     process_family()
 
-    print combined.head()
+    print(combined.head())
 
     scale_all_features()
 
     train, test, targets = recover_train_test_target()
 
+    # declare some filename used to store the output into files
+    clf_file = open('./output/clf', 'w')
+    # train_new.to_csv(('./output/output_5.csv', index = False))
+    test_new_file = open('./output/test_new','w')
+    print(train)
+
+    # set as 200 originally, means the # of trees in the forest
     clf = ExtraTreesClassifier(n_estimators=200)
     clf = clf.fit(train, targets)
+
+    print(clf, file=clf_file)
 
     features = pd.DataFrame()
     features['feature'] = train.columns
     features['importance'] = clf.feature_importances_
     # print "feature_importance is" + str(clf.feature_importances_)
-    print features.sort(['importance'],ascending=False)
+    print(features.sort(['importance'],ascending=False))
 
 # transform our train set and test set in a more compact datasets.
     model = SelectFromModel(clf, prefit=True)
     train_new = model.transform(train)
-    print train_new.shape
+    print(train_new.shape)
+    # print(train_new, file=train_new_file)
+    # pd.DataFrame(train_new).to_csv('./output/train_new.csv', index = False)
 
     test_new = model.transform(test)
-    print test_new.shape
-
 
     forest = RandomForestClassifier(max_features='sqrt')
 
     parameter_grid = {
-        'max_depth': [3, 4, 5, 6, 7],
-        'n_estimators': [200, 210, 220, 230],
+        'max_depth': [3,4,5],
+        'n_estimators': [240, 250, 255,260],
         'criterion': ['gini', 'entropy']
     }
 
+    # n_folds => n_splits
     cross_validation = StratifiedKFold(targets, n_folds=5)
 
     grid_search = GridSearchCV(forest,
                                param_grid=parameter_grid,
                                cv=cross_validation)
 
+    print(grid_search)
     grid_search.fit(train_new, targets)
+    # grid_search.fit(train, targets)
 
     print('Best score: {}'.format(grid_search.best_score_))
     print('Best parameters: {}'.format(grid_search.best_params_))
 
     output = grid_search.predict(test_new).astype(int)
+    # output = grid_search.predict(test).astype(int)
+
     df_output = pd.DataFrame()
     df_output['PassengerId'] = test['PassengerId']
     df_output['Survived'] = output
-    df_output[['PassengerId', 'Survived']].to_csv('./output/output_3.csv', index=False)
+    df_output[['PassengerId', 'Survived']].to_csv('./output/output_6.csv', index=False)
+"""
+if __name__ == '__main__':
+    combined = get_combined_data()
+    # print combined
+
+    get_titles()
+    # print combined.head()
+    set_missing_age()
+"""
