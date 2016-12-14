@@ -319,7 +319,7 @@ def formatPclass(titanic_df, test_df):
     titanic_df = titanic_df.join(pclass_dummies_titanic)
     test_df = test_df.join(pclass_dummies_test)
 
- #   plt.show()
+    plt.show()
     return [titanic_df, test_df]
 
 
@@ -424,6 +424,7 @@ def trainData(titanic_df,  X_train, Y_train, X_test):
 
     :rtype: list
     """
+    print X_train
 
     # five different methods used to predice the Survival on titanic
    # X_train, Y_train, X_test, Y_pred, knn = kNeighbors(X_train, Y_train, X_test)

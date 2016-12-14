@@ -254,8 +254,6 @@ def scale_all_features():
 # =======================================================
 
 
-
-
 def compute_score(clf, X, y,scoring='accuracy'):
     xval = cross_val_score(clf, X, y, cv = 5,scoring=scoring)
     return np.mean(xval)
@@ -271,10 +269,6 @@ def recover_train_test_target():
     test = combined.ix[891:]
 
     return train, test, targets
-
-
-
-
 
 
 if __name__ == '__main__':
@@ -305,7 +299,7 @@ if __name__ == '__main__':
 
     process_family()
 
-    # print combined.shape
+    print combined.head()
 
     scale_all_features()
 
@@ -317,9 +311,10 @@ if __name__ == '__main__':
     features = pd.DataFrame()
     features['feature'] = train.columns
     features['importance'] = clf.feature_importances_
+    # print "feature_importance is" + str(clf.feature_importances_)
+    print features.sort(['importance'],ascending=False)
 
-#     print features.sort(['importance'],ascending=False)
-
+# transform our train set and test set in a more compact datasets.
     model = SelectFromModel(clf, prefit=True)
     train_new = model.transform(train)
     print train_new.shape
@@ -331,8 +326,8 @@ if __name__ == '__main__':
     forest = RandomForestClassifier(max_features='sqrt')
 
     parameter_grid = {
-        'max_depth': [4, 5, 6, 7, 8],
-        'n_estimators': [200, 210, 240, 250],
+        'max_depth': [3, 4, 5, 6, 7],
+        'n_estimators': [200, 210, 220, 230],
         'criterion': ['gini', 'entropy']
     }
 
@@ -351,4 +346,4 @@ if __name__ == '__main__':
     df_output = pd.DataFrame()
     df_output['PassengerId'] = test['PassengerId']
     df_output['Survived'] = output
-    df_output[['PassengerId', 'Survived']].to_csv('../output/output_2.csv', index=False)
+    df_output[['PassengerId', 'Survived']].to_csv('./output/output_3.csv', index=False)

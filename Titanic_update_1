@@ -131,7 +131,7 @@ print cross_validation.cross_val_score(clf, X, y, cv=5)
 
 
 # 分割数据，按照 训练数据:cv数据 = 7:3的比例
-split_train, split_cv = cross_validation.train_test_split(df, test_size=0.3, random_state=0)
+split_train, split_cv = cross_validation.train_test_split(df, test_size=0.2, random_state=0)
 train_df = split_train.filter(regex='Survived|Age_.*|SibSp|Parch|Fare_.*|Cabin_.*|Embarked_.*|Sex_.*|Pclass_.*')
 # 生成模型
 clf = linear_model.LogisticRegression(C=1.0, penalty='l1', tol=1e-6)
@@ -143,8 +143,9 @@ cv_df = split_cv.filter(regex='Survived|Age_.*|SibSp|Parch|Fare_.*|Cabin_.*|Emba
 predictions = clf.predict(cv_df.as_matrix()[:,1:])
 
 origin_data_train = pd.read_csv("./input/train.csv")
-#bad_cases = origin_data_train.loc[origin_data_train['PassengerId'].isin(split_cv[predictions != cv_df.as_matrix()[:,0]]['PassengerId'].values)]
-#print bad_cases
+# bad_cases = origin_data_train.loc[origin_data_train['PassengerId'].isin(split_cv[predictions !=
+# cv_df.as_matrix()[:,0]]['PassengerId'].values)]
+# print bad_cases
 
 
 from sklearn.ensemble import BaggingRegressor
