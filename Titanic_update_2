@@ -3,6 +3,9 @@
 from __future__ import print_function
 
 import warnings
+
+from numpy import random
+
 warnings.filterwarnings('ignore')
 # ---
 
@@ -40,7 +43,7 @@ def get_combined_data():
     # reading train data
     train = pd.read_csv('./input/train.csv')
 
-    # reading test data
+    # reading test data:
     test = pd.read_csv('./input/test.csv')
 
     # extracting and then removing the targets from the training data
@@ -63,14 +66,14 @@ def get_titles():
 
     # a map of more aggregated titles
     Title_Dictionary = {
-        "Capt": "Officer",
+        "Capt": "Caption",
         "Col": "Officer",
         "Major": "Officer",
         "Jonkheer": "Royalty",
         "Don": "Royalty",
         "Sir": "Royalty",
         "Dr": "Officer",
-        "Rev": "Officer",
+        "Rev": "RevWorker",
         "the Countess": "Royalty",
         "Dona": "Royalty",
         "Mme": "Mrs",
@@ -86,6 +89,82 @@ def get_titles():
 
     # we map each title
     combined['Title'] = combined.Title.map(Title_Dictionary)
+
+
+def process_first_char():
+
+    # see if the first characteristic affect the survival rate.
+
+    global combined
+    combined["FirChar"] = ""
+    def first_char(row):
+        name = row["Name"]
+        # name = row["Pclass"]
+        # print(name[0])
+        return (ord(name[0])-65)
+        # return (int(name))
+
+    combined.FirChar = combined.apply(lambda r: first_char(r), axis=1)
+
+
+"""
+def process_age():
+    global combined
+
+    # a function that fills the missing values of the Age variable
+
+    step_size = 1
+    def fillAges(row):
+        if row['Sex'] == 'female' and row['Pclass'] == 1:
+            if row['Title'] == 'Miss':
+                return random.randint(30-step_size,30+step_size)
+            elif row['Title'] == 'Mrs':
+                return random.randint(45-step_size, 45+step_size)
+            elif row['Title'] == 'Officer':
+                return random.randint(49-step_size, 49+step_size)
+            elif row['Title'] == 'Royalty':
+                return random.randint(39-step_size, 39+step_size)
+
+        elif row['Sex'] == 'female' and row['Pclass'] == 2:
+            if row['Title'] == 'Miss':
+                return random.randint(20-step_size, 20+step_size)
+            elif row['Title'] == 'Mrs':
+                return random.randint(30-step_size, 30+step_size)
+
+        elif row['Sex'] == 'female' and row['Pclass'] == 3:
+            if row['Title'] == 'Miss':
+                return random.randint(18-step_size, 18+step_size)
+            elif row['Title'] == 'Mrs':
+                return random.randint(31-step_size, 31+step_size)
+
+        elif row['Sex'] == 'male' and row['Pclass'] == 1:
+            if row['Title'] == 'Master':
+                return random.randint(6-step_size, 6+step_size)  # used to be 6
+            elif row['Title'] == 'Mr':
+                return random.randint(41.5-step_size, 41.5+step_size)
+            elif row['Title'] == 'Officer':
+                return random.randint(52-step_size, 52+step_size)
+            elif row['Title'] == 'Royalty':
+                return random.randint(40-step_size, 40+step_size)
+
+        elif row['Sex'] == 'male' and row['Pclass'] == 2:
+            if row['Title'] == 'Master':
+                return random.randint(2-step_size, 2+step_size)   # used to be 2
+            elif row['Title'] == 'Mr':
+                return random.randint(30-step_size, 30+step_size)
+            elif row['Title'] == 'Officer':
+                return random.randint(41.5-step_size, 41.5+step_size)
+
+        elif row['Sex'] == 'male' and row['Pclass'] == 3:
+            if row['Title'] == 'Master':
+                return random.randint(6-step_size, 6+step_size)   # used to be 6
+            elif row['Title'] == 'Mr':
+                return random.randint(26-step_size, 26+step_size)
+
+    combined.Age = combined.apply(lambda r: fillAges(r) if np.isnan(r['Age']) else r['Age'], axis=1)
+
+    status('age')
+"""
 
 
 def process_age():
@@ -314,9 +393,9 @@ def compute_score(clf, X, y,scoring='accuracy'):
 def recover_train_test_target():
     global combined
 
-    train0 = pd.read_csv('./input/train.csv')
+    train_orig = pd.read_csv('./input/train.csv')
 
-    targets = train0.Survived
+    targets = train_orig.Survived
     # print(targets)
     train = combined.ix[0:890]
     test = combined.ix[891:]
@@ -331,6 +410,9 @@ if __name__ == '__main__':
 
     get_titles()
     # print combined.head()
+
+    process_first_char()
+
     process_age()
 
     process_fares()
@@ -360,17 +442,19 @@ if __name__ == '__main__':
 
     train, test, targets = recover_train_test_target()
 
+    # print(train.head())
     # declare some filename used to store the output into files
     clf_file = open('./output/clf', 'w')
     # train_new.to_csv(('./output/output_5.csv', index = False))
     test_new_file = open('./output/test_new','w')
-    print(train)
+    # print(train)
 
     # set as 200 originally, means the # of trees in the forest
+    # clf = RandomForestClassifier(n_estimators=200, max_depth=None, min_samples_split=2)
     clf = ExtraTreesClassifier(n_estimators=200)
     clf = clf.fit(train, targets)
 
-    print(clf, file=clf_file)
+    # print(clf, file=clf_file)
 
     features = pd.DataFrame()
     features['feature'] = train.columns
@@ -381,6 +465,7 @@ if __name__ == '__main__':
 # transform our train set and test set in a more compact datasets.
     model = SelectFromModel(clf, prefit=True)
     train_new = model.transform(train)
+    # print(train_new)
     print(train_new.shape)
     # print(train_new, file=train_new_file)
     # pd.DataFrame(train_new).to_csv('./output/train_new.csv', index = False)
@@ -390,8 +475,8 @@ if __name__ == '__main__':
     forest = RandomForestClassifier(max_features='sqrt')
 
     parameter_grid = {
-        'max_depth': [3,4,5],
-        'n_estimators': [240, 250, 255,260],
+        'max_depth': [4,5,6,7,8],
+        'n_estimators': [200, 210, 240,250,],
         'criterion': ['gini', 'entropy']
     }
 
@@ -402,7 +487,7 @@ if __name__ == '__main__':
                                param_grid=parameter_grid,
                                cv=cross_validation)
 
-    print(grid_search)
+    # print(grid_search)
     grid_search.fit(train_new, targets)
     # grid_search.fit(train, targets)
 
@@ -415,7 +500,7 @@ if __name__ == '__main__':
     df_output = pd.DataFrame()
     df_output['PassengerId'] = test['PassengerId']
     df_output['Survived'] = output
-    df_output[['PassengerId', 'Survived']].to_csv('./output/output_6.csv', index=False)
+    df_output[['PassengerId', 'Survived']].to_csv('./output/output_age_update_0_0.csv', index=False)
 """
 if __name__ == '__main__':
     combined = get_combined_data()
